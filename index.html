@@ -1,0 +1,1102 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Icebreaker Generator</title>
+  <style>
+    @font-face {
+      font-family: "IcebreakerDisplay";
+      src: url("./a.ttf") format("truetype");
+      font-weight: normal;
+      font-style: normal;
+    }
+
+    :root {
+      --text: #f5f8ff;
+      --muted: #c6d4f1;
+      --panel: rgba(8, 24, 46, 0.8);
+      --panel-2: rgba(14, 34, 61, 0.8);
+      --line: rgba(165, 197, 255, 0.25);
+      --chip: rgba(70, 108, 170, 0.3);
+      --chip-active: rgba(133, 179, 255, 0.4);
+      --accent: #74a8ff;
+      --accent-2: #3b77dd;
+      --shadow: 0 24px 55px rgba(0, 0, 0, 0.35);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Trebuchet MS", "Segoe UI", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at 16% 14%, rgba(88, 139, 232, 0.26), transparent 30%),
+        radial-gradient(circle at 76% 70%, rgba(114, 169, 255, 0.2), transparent 35%),
+        linear-gradient(145deg, #0b1f3b, #09152d);
+      padding: 92px 24px 24px;
+      overflow-x: hidden;
+    }
+
+    .app-shell {
+      display: none;
+      opacity: 0;
+    }
+
+    .app-shell.active {
+      display: block;
+      opacity: 1;
+    }
+
+    .app-shell.entering {
+      animation: appFadeIn 2.5s ease forwards;
+    }
+
+    #startScreen {
+      position: fixed;
+      inset: 0;
+      z-index: 60;
+      background: #000;
+      display: grid;
+      place-items: center;
+      padding: 0;
+    }
+
+    #startScreen.leaving {
+      animation: startFadeOut 2.5s ease forwards;
+      pointer-events: none;
+    }
+
+    #startContainer {
+      background-color: #004e6f;
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    #top_canvas,
+    #bottom_canvas {
+      position: relative;
+      float: left;
+      width: 100%;
+      height: 50%;
+      display: block;
+    }
+
+    #top_canvas {
+      z-index: 1;
+    }
+
+    #bottom_canvas {
+      filter: blur(3px);
+    }
+
+    .hidden {
+      visibility: hidden;
+      position: absolute;
+    }
+
+    .start-enter {
+      position: absolute;
+      left: 50%;
+      bottom: 22px;
+      transform: translateX(-50%);
+      border: none;
+      border-radius: 999px;
+      padding: 12px 22px;
+      font-weight: 800;
+      font-size: 1rem;
+      color: #ffffff;
+      background: linear-gradient(0deg, #1f6fe0 0%, #3b8cff 100%);
+      cursor: pointer;
+      box-shadow: 0 10px 20px rgba(6, 19, 36, 0.35);
+    }
+
+    .brand-title {
+      font-family: "IcebreakerDisplay", "Trebuchet MS", "Segoe UI", sans-serif;
+      position: fixed;
+      top: 16px;
+      left: 20px;
+      z-index: 12;
+      margin: 0;
+      font-size: clamp(3rem, 9vw, 5.1rem);
+      letter-spacing: 0.05em;
+      line-height: 1;
+      text-transform: uppercase;
+      color: #fff;
+      text-shadow: 0 8px 28px rgba(0, 0, 0, 0.45);
+    }
+
+    .scene-container {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      pointer-events: none;
+      overflow: hidden;
+      display: flex;
+      flex-wrap: wrap;
+    }
+
+    .scene-top {
+      width: 100%;
+      height: 22vh;
+      min-height: 120px;
+      background-color: #95d8e9;
+      display: flex;
+      justify-content: center;
+      position: relative;
+    }
+
+    .scene-bottom {
+      width: 100%;
+      height: 78vh;
+      min-height: 420px;
+      background-color: #00afd8;
+      display: flex;
+      justify-content: center;
+      position: relative;
+    }
+
+    .water-line {
+      margin-top: 3px;
+      height: 5px;
+      width: 100%;
+      background-color: #00afd8;
+      position: absolute;
+      top: 0;
+      left: 0;
+      z-index: 2;
+    }
+
+    .iceberg {
+      position: absolute;
+      left: -90px;
+      top: -48px;
+      animation: float 3s infinite;
+      transform-origin: center;
+      z-index: 1;
+      line-height: 0;
+      filter: drop-shadow(0 10px 14px rgba(0, 80, 110, 0.18));
+      transform: scale(1.28);
+    }
+
+    .iceberg,
+    .iceberg * {
+      box-sizing: content-box;
+    }
+
+    .iceberg > div {
+      margin-top: -1px;
+    }
+
+    .layer-0 {
+      height: 0;
+      width: 0;
+      position: relative;
+      left: 380px;
+      border-left: 40px solid transparent;
+      border-right: 60px solid transparent;
+      border-bottom: 50px solid #f8fdff;
+    }
+
+    .layer-1 {
+      height: 0;
+      width: 100px;
+      border-left: 80px solid transparent;
+      border-right: 60px solid transparent;
+      border-bottom: 100px solid #d6eff5;
+      position: relative;
+      left: 300px;
+    }
+
+    .layer-2 {
+      height: 0;
+      position: relative;
+      left: 204px;
+      width: 240px;
+      border-left: 96px solid transparent;
+      border-right: 154px solid transparent;
+      border-bottom: 120px solid #d6eff5;
+    }
+
+    .layer-3 {
+      height: 80px;
+      position: relative;
+      left: 140px;
+      display: flex;
+    }
+
+    .left-tri {
+      height: 0;
+      width: 0;
+      border-left: 64px solid transparent;
+      border-bottom: 80px solid #d6eff5;
+    }
+
+    .right-quad {
+      width: 480px;
+      border-left: 0 solid transparent;
+      border-right: 10px solid transparent;
+      border-top: 80px solid #d6eff5;
+    }
+
+    .layer-4 {
+      height: 0;
+      position: relative;
+      left: 140px;
+      width: 469px;
+      border-left: 60px solid transparent;
+      border-right: 15px solid transparent;
+      border-top: 120px solid #d6eff5;
+    }
+
+    .layer-5 {
+      height: 0;
+      position: relative;
+      left: 200px;
+      width: 360px;
+      border-left: 60px solid transparent;
+      border-right: 49px solid transparent;
+      border-top: 120px solid #d6eff5;
+    }
+
+    .layer-6 {
+      height: 0;
+      width: 0;
+      position: relative;
+      left: 260px;
+      border-left: 30px solid transparent;
+      border-right: 330px solid transparent;
+      border-top: 60px solid #d6eff5;
+    }
+
+    .floating-ui {
+      position: fixed;
+      left: clamp(50px, 12vw, 270px);
+      top: clamp(190px, 33vh, 360px);
+      z-index: 5;
+      width: min(460px, 92vw);
+      display: flex;
+    }
+
+    .button-stack {
+      display: flex;
+      flex-direction: column;
+      gap: 99px;
+      align-items: flex-start;
+    }
+
+    .floating-btn {
+      position: relative;
+      z-index: 1;
+      overflow: hidden;
+      border: none;
+      outline: none;
+      padding: 18px 34px;
+      border-radius: 999px;
+      background: linear-gradient(0deg, #1f6fe0 0%, #3b8cff 100%);
+      color: #ffffff;
+      font-weight: 700;
+      font-size: 1.2rem;
+      width: 220px;
+      text-align: center;
+      cursor: pointer;
+      letter-spacing: 0.01em;
+      box-shadow: 0 12px 22px rgba(6, 19, 36, 0.28);
+      animation: float 3.2s ease-in-out infinite;
+    }
+
+    .floating-btn::after {
+      position: absolute;
+      content: "";
+      width: 100%;
+      height: 0;
+      top: 0;
+      left: 0;
+      z-index: -1;
+      border-radius: 999px;
+      background: linear-gradient(0deg, #4ea0ff 0%, #83c2ff 100%);
+      transition: all 0.3s ease;
+    }
+
+    .floating-btn:hover::after {
+      top: auto;
+      bottom: 0;
+      height: 100%;
+    }
+
+    .floating-btn:nth-child(2) {
+      animation-delay: 0.35s;
+    }
+
+    .floating-btn.pop {
+      animation: buttonPop 0.32s ease;
+    }
+
+    .go-btn {
+      color: #ffffff;
+    }
+
+    .category-btn {
+      color: #ffffff;
+      font-weight: 800;
+    }
+
+    .number-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 20;
+      background: rgba(4, 15, 31, 0.2);
+      display: none;
+      place-items: start center;
+      padding-top: clamp(190px, 33vh, 360px);
+    }
+
+    .number-overlay.open {
+      display: grid;
+    }
+
+    .number-panel {
+      width: min(520px, 92vw);
+      background: transparent;
+      border-radius: 0;
+      padding: 0 8px;
+      box-shadow: none;
+      transform: translateY(-24px);
+      opacity: 0;
+      animation: dropIn 0.28s ease forwards;
+      display: grid;
+      justify-items: center;
+    }
+
+    .overlay-input {
+      width: 220px;
+      border: none;
+      outline: none;
+      background: transparent;
+      color: #f4f9ff;
+      padding: 8px 0;
+      border-radius: 0;
+      font-weight: 800;
+      font-size: 1.6rem;
+      margin-bottom: 18px;
+      border-bottom: 2px solid rgba(236, 246, 255, 0.88);
+      text-align: center;
+      appearance: textfield;
+      -moz-appearance: textfield;
+    }
+
+    .overlay-input::-webkit-outer-spin-button,
+    .overlay-input::-webkit-inner-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
+
+    .overlay-actions {
+      display: flex;
+      gap: 16px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .overlay-btn {
+      border: none;
+      outline: none;
+      border-radius: 0;
+      padding: 0;
+      font-weight: 700;
+      font-size: 1rem;
+      cursor: pointer;
+      color: #e8f3ff;
+      background: transparent;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .overlay-btn.primary {
+      color: #f6fbff;
+    }
+
+    .output {
+      position: absolute;
+      left: clamp(250px, 31vw, 430px);
+      top: clamp(170px, 28vh, 310px);
+      width: min(560px, 48vw);
+      min-height: 84px;
+      padding: 8px 14px;
+      display: grid;
+      align-content: start;
+      opacity: 0;
+      pointer-events: none;
+      z-index: 0;
+      will-change: transform, opacity;
+    }
+
+    .category-tag {
+      font-size: 0.76rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: #bcd7ff;
+      margin-bottom: 10px;
+      font-weight: 700;
+    }
+
+    .prompt {
+      margin: 0;
+      font-size: clamp(2rem, 4.8vw, 3.8rem);
+      line-height: 1.15;
+      font-family: "Franklin Gothic Medium", "Arial Narrow", Arial, sans-serif;
+      color: #f3f8ff;
+      text-shadow: 0 3px 10px rgba(5, 20, 42, 0.5);
+    }
+
+    .prompt.single-line {
+      white-space: nowrap;
+      overflow: hidden;
+      display: inline-block;
+      max-width: 100%;
+    }
+
+    .output.run {
+      animation: promptTravel 1.6s cubic-bezier(0.2, 0.75, 0.22, 1) forwards;
+    }
+
+    @keyframes promptTravel {
+      0% {
+        transform: translate3d(-55px, 0, 0);
+        opacity: 0;
+      }
+      22% {
+        transform: translate3d(0, 0, 0);
+        opacity: 1;
+      }
+      100% {
+        transform: translate3d(24vw, 0, 0);
+        opacity: 1;
+      }
+    }
+
+    @keyframes dropIn {
+      to {
+        transform: translateY(0);
+        opacity: 1;
+      }
+    }
+
+    @keyframes startFadeOut {
+      from { opacity: 1; }
+      to { opacity: 0; }
+    }
+
+    @keyframes appFadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    @keyframes buttonPop {
+      0% {
+        transform: scale(1);
+        filter: brightness(1);
+        box-shadow: 0 12px 22px rgba(6, 19, 36, 0.28);
+      }
+      45% {
+        transform: scale(1.44);
+        filter: brightness(1.55);
+        box-shadow: 0 24px 42px rgba(6, 19, 36, 0.48);
+      }
+      100% {
+        transform: scale(1);
+        filter: brightness(1);
+        box-shadow: 0 12px 22px rgba(6, 19, 36, 0.28);
+      }
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes float {
+      0% { transform: translate3d(0, 0, 0); }
+      50% { transform: translate3d(0, 5px, 0); }
+      100% { transform: translate3d(0, 0, 0); }
+    }
+
+    @media (max-width: 560px) {
+      body {
+        padding: 86px 14px 16px;
+      }
+
+      .brand-title {
+        font-size: clamp(2.1rem, 11vw, 3.6rem);
+        top: 14px;
+        left: 14px;
+      }
+
+      .floating-ui {
+        top: auto;
+        right: 12px;
+        left: 12px;
+        bottom: 24px;
+        width: auto;
+      }
+
+      .button-stack {
+        gap: 26px;
+      }
+
+      .output {
+        left: 40vw;
+        top: 18px;
+        width: 56vw;
+      }
+
+      .iceberg {
+        left: -180px;
+        transform: scale(1.12);
+      }
+    }
+  </style>
+</head>
+<body>
+  <section id="startScreen">
+    <div id="startContainer">
+      <canvas id="top_canvas"></canvas>
+      <canvas id="bottom_canvas"></canvas>
+      <button id="enterExperienceBtn" class="start-enter" type="button">Enter</button>
+    </div>
+  </section>
+  <div id="appShell" class="app-shell">
+  <h1 class="brand-title">Icebreaker</h1>
+  <div class="scene-container" aria-hidden="true">
+    <div class="scene-top">
+    </div>
+    <div class="scene-bottom">
+      <div class="water-line"></div>
+      <section id="output" class="output" aria-live="polite">
+        <p class="category-tag">Ready</p>
+        <p class="prompt">Click "Go!" to start.</p>
+      </section>
+      <div class="iceberg">
+        <div class="layer-0"></div>
+        <div class="layer-1"></div>
+        <div class="layer-2"></div>
+        <div class="layer-3">
+          <div class="left-tri"></div>
+          <div class="right-quad"></div>
+        </div>
+        <div class="layer-4"></div>
+        <div class="layer-5"></div>
+        <div class="layer-6"></div>
+      </div>
+    </div>
+  </div>
+  <main class="floating-ui">
+    <div class="button-stack">
+      <button id="generateBtn" class="floating-btn go-btn" type="button">Go!</button>
+      <button id="categoryBtn" class="floating-btn category-btn" type="button">All</button>
+      <button id="pickNumberBtn" class="floating-btn" type="button">Number</button>
+    </div>
+  </main>
+  <div id="numberOverlay" class="number-overlay" aria-hidden="true">
+    <div class="number-panel">
+      <input id="questionNumberInput" class="overlay-input" type="number" min="1" step="1" />
+      <div class="overlay-actions">
+        <button id="confirmPickBtn" class="overlay-btn primary" type="button">Enter</button>
+        <button id="cancelPickBtn" class="overlay-btn" type="button">Back</button>
+      </div>
+    </div>
+  </div>
+  </div>
+
+  <script>
+    const START_TWO_PI = Math.PI * 2;
+    const startScreenEl = document.getElementById("startScreen");
+    const appShellEl = document.getElementById("appShell");
+    const startContainerEl = document.getElementById("startContainer");
+    const enterExperienceBtn = document.getElementById("enterExperienceBtn");
+    const topCanvas = document.getElementById("top_canvas");
+    const bottomCanvas = document.getElementById("bottom_canvas");
+
+    let startTime = 0;
+    let startAnimId = null;
+    const startTimeStep = 1 / 60;
+    let startViewWidth = 768;
+    let startViewHeight = 512;
+    let startHalfWidth = startViewWidth * 0.5;
+    let startHalfHeight = startViewHeight * 0.5;
+    const startContexts = [];
+    let tctx;
+    let bctx;
+    let startIceberg;
+    const startBubbles = [];
+    let isEnteringExperience = false;
+
+    function StartIceberg() {
+      this.x = 0;
+      this.y = 0;
+    }
+
+    StartIceberg.prototype.update = function updateStartIceberg() {
+      this.x = startHalfWidth + Math.sin(startTime) * 5;
+      this.y = startHalfHeight + Math.cos(startTime) * 20;
+    };
+
+    StartIceberg.prototype.draw = function drawStartIceberg() {
+      const rotation = Math.sin(startTime) * Math.PI * 0.01;
+      const fontSize = Math.max(128, Math.min(startViewWidth * 0.24, startViewHeight * 0.32));
+      const lineGap = fontSize * 0.95;
+      startContexts.forEach((context) => {
+        context.save();
+        context.translate(this.x, this.y);
+        context.rotate(rotation);
+        context.textAlign = "center";
+        context.textBaseline = "middle";
+        context.fillStyle = "#f5fcff";
+        context.font = `${fontSize}px Impact, Haettenschweiler, "Arial Narrow Bold", sans-serif`;
+        context.fillText("ICE", 0, -lineGap * 0.5);
+        context.fillText("BREAKER", 0, lineGap * 0.5);
+        context.restore();
+      });
+    };
+
+    function StartBubble() {
+      this.r = 2 + Math.random() * 2;
+      this.swayDir = Math.random() > 0.5 ? -1 : 1;
+      this.speed = 20 + Math.random() * 30;
+      this.x = 0;
+      this.y = 0;
+      this.sway = 0;
+    }
+
+    StartBubble.prototype.update = function updateStartBubble() {
+      this.sway = Math.sin(startTime) * 30 * this.swayDir;
+      this.y -= this.speed * startTimeStep;
+    };
+
+    StartBubble.prototype.draw = function drawStartBubble() {
+      bctx.fillStyle = "#0083b9";
+      bctx.beginPath();
+      bctx.arc(this.x + this.sway, this.y, this.r, 0, START_TWO_PI);
+      bctx.fill();
+    };
+
+    function initStartCanvases() {
+      startViewWidth = startContainerEl.clientWidth || window.innerWidth;
+      startViewHeight = startContainerEl.clientHeight || window.innerHeight;
+      startHalfWidth = startViewWidth * 0.5;
+      startHalfHeight = startViewHeight * 0.5;
+
+      topCanvas.width = bottomCanvas.width = startViewWidth;
+      topCanvas.height = bottomCanvas.height = startHalfHeight;
+
+      tctx = topCanvas.getContext("2d");
+      bctx = bottomCanvas.getContext("2d");
+      startContexts[0] = tctx;
+      startContexts[1] = bctx;
+
+      const zoom = 1.3;
+      bctx.setTransform(1, 0, 0, 1, 0, 0);
+      bctx.translate(startHalfWidth, startHalfHeight);
+      bctx.scale(zoom, zoom);
+      bctx.translate(-startHalfWidth, -startHalfHeight);
+      bctx.translate(0, -startHalfHeight / zoom);
+    }
+
+    function initStartObjects() {
+      startIceberg = new StartIceberg();
+      startIceberg.x = startHalfWidth;
+      startIceberg.y = Math.max(150, startHalfHeight * 0.55);
+      startBubbles.length = 0;
+      for (let i = 0; i < 100; i += 1) {
+        const bubble = new StartBubble();
+        bubble.x = Math.random() * startViewWidth;
+        bubble.y = Math.random() * startHalfHeight + startHalfHeight;
+        startBubbles.push(bubble);
+      }
+    }
+
+    function updateStartScene() {
+      startIceberg.update();
+      startBubbles.forEach((bubble) => {
+        bubble.update();
+        if (bubble.y < startHalfHeight) {
+          bubble.y = startViewHeight;
+        }
+      });
+    }
+
+    function drawStartScene() {
+      tctx.fillStyle = "#0083b9";
+      tctx.fillRect(0, 0, startViewWidth, startViewHeight);
+      bctx.fillStyle = "#004e6f";
+      bctx.fillRect(0, 0, startViewWidth, startViewHeight);
+
+      startIceberg.draw();
+      startBubbles.forEach((bubble) => bubble.draw());
+    }
+
+    function startLoop() {
+      updateStartScene();
+      drawStartScene();
+      startTime += startTimeStep;
+      startAnimId = requestAnimationFrame(startLoop);
+    }
+
+    function startIntroAnimation() {
+      initStartCanvases();
+      initStartObjects();
+      startTime = 0;
+      if (startAnimId) {
+        cancelAnimationFrame(startAnimId);
+      }
+      startLoop();
+    }
+
+    function enterExperience() {
+      if (isEnteringExperience) {
+        return;
+      }
+      isEnteringExperience = true;
+      enterExperienceBtn.disabled = true;
+      startScreenEl.classList.add("leaving");
+
+      window.setTimeout(() => {
+        if (startAnimId) {
+          cancelAnimationFrame(startAnimId);
+          startAnimId = null;
+        }
+        startScreenEl.style.display = "none";
+        appShellEl.classList.add("active", "entering");
+      }, 2500);
+
+      window.setTimeout(() => {
+        appShellEl.classList.remove("entering");
+      }, 5000);
+    }
+
+    function initStartScreen() {
+      enterExperienceBtn.addEventListener("click", enterExperience);
+      window.addEventListener("resize", startIntroAnimation);
+      startIntroAnimation();
+    }
+
+    const categoryPrompts = {
+      Fun: [
+        "If your life had a theme song, what would it be?",
+        "What fictional world would you move to for a month?",
+        "If you could swap lives with any cartoon character, who would it be?",
+        "What is your most unusual talent?",
+        "What is the funniest thing that happened to you recently?",
+        "If your pet could talk, what would it complain about first?",
+        "What is a food combo you love that others think is weird?",
+        "If you had a personal mascot, what would it be?",
+        "What movie can you rewatch forever?",
+        "What game show do you think you could win?",
+      ],
+      Work: [
+        "What part of your workday gives you the most energy?",
+        "What is one productivity tip that actually works for you?",
+        "What is a skill you are currently building?",
+        "What is one tool you could not work without?",
+        "What is the best career advice you have received?",
+        "What is one meeting format that saves time for your team?",
+        "What is one task you wish you could automate?",
+        "What is your favorite way to start the workday?",
+        "What is one project you are proud of lately?",
+        "What helps you refocus after a distracting day?",
+      ],
+      Deep: [
+        "What value do you try to practice every day?",
+        "What is one challenge that taught you an important lesson?",
+        "Who has had a big positive influence on your life?",
+        "What does success look like for you right now?",
+        "What helps you stay grounded when things get busy?",
+        "What belief have you changed your mind about over time?",
+        "What is one risk you are glad you took?",
+        "What kind of legacy do you want to leave in your community?",
+        "What moment in life made you feel most grateful?",
+        "What is one boundary that improved your life?",
+        "What part of your personality took the longest to accept?",
+        "What is one fear you have gotten better at managing?",
+        "What does a meaningful friendship look like to you?",
+        "What is one mistake that ended up helping you grow?",
+        "When do you feel most like yourself?",
+        "What is one habit you are trying to build this year?",
+        "What do you want people to remember about how you treated them?",
+        "What is one life lesson you learned later than expected?",
+        "How do you define balance in this season of your life?",
+        "What is one thing you had to unlearn to move forward?",
+        "What is something small you do that improves your mental health?",
+        "What does courage look like in everyday life for you?",
+        "What kind of support helps you most when things are hard?",
+        "What is one conversation that changed your perspective?",
+        "What does personal growth mean to you right now?",
+        "What is one way you recharge when you are emotionally drained?",
+        "What would your younger self be proud of today?",
+        "What belief keeps you hopeful during difficult times?",
+        "What is one way you want to show up differently this year?",
+        "What experience made you more compassionate?",
+      ],
+      Quick: [
+        "Coffee or tea?",
+        "Morning person or night owl?",
+        "Beach or mountains?",
+        "Books or movies?",
+        "Sweet or savory?",
+        "Text or call?",
+        "Sunrise or sunset?",
+        "Plan ahead or go with the flow?",
+        "City trip or cabin trip?",
+        "Podcast or playlist?",
+      ],
+      Travel: [
+        "What is the best place you have visited so far?",
+        "Window seat or aisle seat?",
+        "What destination is on your bucket list right now?",
+        "What is one local food everyone should try once?",
+        "What is your ideal weekend getaway?",
+        "What is your favorite travel memory from childhood?",
+        "What is one place you would revisit tomorrow?",
+        "What is your must-pack travel item?",
+        "Road trip or fly?",
+        "What is one country you want to learn more about?",
+      ],
+      WouldYouRather: [
+        "Would you rather have more time or more money?",
+        "Would you rather always be 10 minutes early or 10 minutes late?",
+        "Would you rather read minds or be invisible?",
+        "Would you rather give up music or movies for a year?",
+        "Would you rather live by the ocean or near mountains?",
+        "Would you rather have a pause button or rewind button for life?",
+        "Would you rather host every event or never host one?",
+        "Would you rather travel to the past or the future once?",
+        "Would you rather be great at public speaking or writing?",
+        "Would you rather have unlimited coffee or unlimited snacks?",
+      ],
+      TrueOrFalse: [
+        "True or False: You prefer starting your day early.",
+        "True or False: You would rather text than call.",
+        "True or False: You like pineapple on pizza.",
+        "True or False: You enjoy trying brand-new foods.",
+        "True or False: You can work better with music on.",
+        "True or False: You have traveled to more than 3 states this year.",
+        "True or False: You prefer winter over summer.",
+        "True or False: You like surprise plans.",
+        "True or False: You have ever done karaoke in public.",
+        "True or False: You would take a beach trip over a city trip.",
+      ],
+      MultipleChoice: [
+        "Pick one: A) Coffee B) Tea C) Energy drink",
+        "Pick one: A) Remote work B) Hybrid C) Office",
+        "Pick one: A) Books B) Movies C) Podcasts",
+        "Pick one: A) Sunrise B) Sunset C) Midnight vibe",
+        "Pick one: A) Planner B) Notes app C) Sticky notes",
+        "Pick one: A) Cats B) Dogs C) Both",
+        "Pick one: A) Pizza B) Tacos C) Sushi",
+        "Pick one: A) Mountains B) Beach C) Forest",
+        "Pick one: A) Introvert recharge B) Extrovert recharge C) Depends on the day",
+        "Pick one: A) Learn a language B) Learn an instrument C) Learn to code",
+      ]
+    };
+    const icebreakers = {
+      All: Object.values(categoryPrompts).flat(),
+      ...categoryPrompts
+    };
+
+    const outputEl = document.getElementById("output");
+    const generateBtn = document.getElementById("generateBtn");
+    const categoryBtn = document.getElementById("categoryBtn");
+    const pickNumberBtn = document.getElementById("pickNumberBtn");
+    const numberOverlay = document.getElementById("numberOverlay");
+    const questionNumberInput = document.getElementById("questionNumberInput");
+    const confirmPickBtn = document.getElementById("confirmPickBtn");
+    const cancelPickBtn = document.getElementById("cancelPickBtn");
+
+    const categoryNames = Object.keys(icebreakers);
+    const usedIndexesByCategory = {};
+    let currentCategory = "All";
+    let promptTypeAnimationId = null;
+
+    categoryNames.forEach((name) => {
+      usedIndexesByCategory[name] = new Set();
+    });
+
+    function popButton(button) {
+      button.classList.remove("pop");
+      void button.offsetWidth;
+      button.classList.add("pop");
+    }
+
+    function stopPromptTypewriter() {
+      if (promptTypeAnimationId !== null) {
+        cancelAnimationFrame(promptTypeAnimationId);
+        promptTypeAnimationId = null;
+      }
+    }
+
+    function runPromptTypewriter(message) {
+      stopPromptTypewriter();
+      const promptEl = outputEl.querySelector(".prompt");
+      if (!promptEl) {
+        return;
+      }
+
+      const totalChars = message.length;
+      if (totalChars === 0) {
+        promptEl.textContent = "";
+        return;
+      }
+
+      const totalDurationMs = 1300;
+      const singleLineDurationMs = 620;
+      const startedAt = performance.now();
+      promptEl.classList.add("single-line", "typing");
+      promptEl.textContent = "";
+
+      const step = (now) => {
+        const elapsed = now - startedAt;
+        const progress = Math.min(1, elapsed / totalDurationMs);
+        const visibleChars = Math.max(1, Math.floor(totalChars * progress));
+        promptEl.textContent = message.slice(0, visibleChars);
+
+        if (elapsed >= singleLineDurationMs) {
+          promptEl.classList.remove("single-line");
+        }
+
+        if (progress < 1) {
+          promptTypeAnimationId = requestAnimationFrame(step);
+          return;
+        }
+
+        promptEl.classList.remove("typing");
+        promptTypeAnimationId = null;
+      };
+
+      promptTypeAnimationId = requestAnimationFrame(step);
+    }
+
+    function updateCount() {
+      const total = icebreakers[currentCategory].length;
+      categoryBtn.textContent = currentCategory;
+      questionNumberInput.max = String(total);
+    }
+
+    function drawPrompt(category) {
+      const total = icebreakers[category].length;
+      const used = usedIndexesByCategory[category];
+
+      if (used.size >= total) {
+        used.clear();
+      }
+
+      const availableIndexes = [];
+      for (let i = 0; i < total; i += 1) {
+        if (!used.has(i)) {
+          availableIndexes.push(i);
+        }
+      }
+
+      const chosenIndex = availableIndexes[Math.floor(Math.random() * availableIndexes.length)];
+      used.add(chosenIndex);
+      return icebreakers[category][chosenIndex];
+    }
+
+    function showPrompt(categoryLabel, message) {
+      outputEl.innerHTML = `
+        <p class="prompt">${message}</p>
+      `;
+      outputEl.classList.remove("run");
+      void outputEl.offsetWidth;
+      outputEl.classList.add("run");
+      runPromptTypewriter(message);
+    }
+
+    function generateIcebreaker() {
+      popButton(generateBtn);
+      const prompt = drawPrompt(currentCategory);
+      showPrompt(currentCategory, prompt);
+      updateCount();
+    }
+
+    function pickIcebreakerByNumber(number) {
+      const total = icebreakers[currentCategory].length;
+
+      if (!Number.isInteger(number) || number < 1 || number > total) {
+        return `Enter a valid number from 1 to ${total}.`;
+      }
+
+      const prompt = icebreakers[currentCategory][number - 1];
+      const used = usedIndexesByCategory[currentCategory];
+      const promptIndex = number - 1;
+
+      if (used.has(promptIndex)) {
+        return `Question ${number} was already used this cycle. Pick another.`;
+      }
+
+      used.add(promptIndex);
+      showPrompt(`${currentCategory} - #${number}`, prompt);
+      updateCount();
+      return "";
+    }
+
+    function openNumberOverlay() {
+      popButton(pickNumberBtn);
+      questionNumberInput.value = "";
+      numberOverlay.classList.add("open");
+      numberOverlay.setAttribute("aria-hidden", "false");
+      questionNumberInput.focus();
+    }
+
+    function closeNumberOverlay() {
+      numberOverlay.classList.remove("open");
+      numberOverlay.setAttribute("aria-hidden", "true");
+    }
+
+    function submitNumberPick() {
+      const number = Number.parseInt(questionNumberInput.value, 10);
+      const error = pickIcebreakerByNumber(number);
+      if (error) {
+        questionNumberInput.value = "";
+        questionNumberInput.focus();
+        return;
+      }
+      closeNumberOverlay();
+    }
+
+    function nextCategory() {
+      popButton(categoryBtn);
+      const index = categoryNames.indexOf(currentCategory);
+      currentCategory = categoryNames[(index + 1) % categoryNames.length];
+      updateCount();
+    }
+
+    generateBtn.addEventListener("click", generateIcebreaker);
+    categoryBtn.addEventListener("click", nextCategory);
+    pickNumberBtn.addEventListener("click", openNumberOverlay);
+    confirmPickBtn.addEventListener("click", submitNumberPick);
+    cancelPickBtn.addEventListener("click", closeNumberOverlay);
+    numberOverlay.addEventListener("click", (event) => {
+      if (event.target === numberOverlay) {
+        closeNumberOverlay();
+      }
+    });
+    questionNumberInput.addEventListener("keydown", (event) => {
+      if (event.key === "Enter") {
+        submitNumberPick();
+      }
+      if (event.key === "Escape") {
+        closeNumberOverlay();
+      }
+    });
+
+    initStartScreen();
+    updateCount();
+  </script>
+</body>
+</html>
